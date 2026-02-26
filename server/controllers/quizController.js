@@ -50,8 +50,53 @@ const getQuizById = async (req, res) => {
     }
 };
 
+const Attempt = require("../models/Attempt");
+
+// SUBMIT QUIZ ATTEMPT (Logged-in User)
+const submitQuizAttempt = async (req, res) => {
+    try {
+        const { selectedAnswers } = req.body;
+
+        // Fetch the quiz by ID to get the correct answers
+        const quiz = await Quiz.findById(req.params.id);
+
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
+        }
+
+        // Calculate score
+        let score = 0;
+        quiz.questions.forEach((question, index) => {
+            // Check if the selected answer matches the correct answer
+            if (selectedAnswers[index] === question.correctAnswer) {
+                score++;
+            }
+        });
+
+        // Save attempt in database
+        const newAttempt = await Attempt.create({
+            user: req.user.id,
+            quiz: quiz._id,
+            selectedAnswers,
+            score
+        });
+
+        // Return the calculated score
+        res.status(201).json({
+            message: "Quiz submitted successfully",
+            score,
+            totalQuestions: quiz.questions.length
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Error submitting quiz" });
+    }
+};
+
+
 module.exports = {
     createQuiz,
     getAllQuizzes,
-    getQuizById
+    getQuizById,
+    submitQuizAttempt
 };
